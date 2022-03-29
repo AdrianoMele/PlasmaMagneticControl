@@ -7,6 +7,11 @@
 % reference value during the shot, but in general all of the effects above are 
 % only approximately known in advance and hence a closed loop control action is 
 % needed.
+% 
+% Of course, we may start from the filamentary model discussed in the VS exercise 
+% and elaborate on it by letting the plasma current vary over time. However, here 
+% we will follow a slightly different approach, and save the discussion of a "simpler" 
+% model (with respect to the one we are using here) for later.
 %% Preliminaries and transformer currents pattern
 % As usual, we start by loading our plasma linearized model
 
@@ -31,8 +36,8 @@ lm.F =  model.F;
 % the isoflux line passing through the X-point. )*
 % 
 % There are a few different ways to find this combination. The easiest one is 
-% to take a few plasma-wall gaps and find a combination of currents which acts 
-% on $I_p $ without changing the gaps.
+% to take a few plasma-wall gaps and find *a combination of currents which acts 
+% on* $I_p $ *without changing the plasma-wall gaps*.
 % 
 % First we need to quantify the effect of the active currents on the plasma 
 % current. We could take the row of the C matrix associated to the plasma current
@@ -41,7 +46,7 @@ i_Ip = get_y_idx(model.y_type,'Ipl',1);
 C_Ip = lm.C(i_Ip,:);
 %% 
 % But since Ip is a state variable of our model, this matrix is just a bunch 
-% of zeros
+% of zeros :(
 
 C_Ip(:,1:10)
 %% 
@@ -59,7 +64,7 @@ C_Ip(:,1:10)
 %% 
 % Our circuit equations become
 % 
-% $$L_{PF}\dot{I}_{PF}(t)+M_{I_p2PF}\dot{I}_p(t)=V_{PF}(t) \\M_{PF2I_p} \dot{I}_p(t)(t)+L_{I_p}\dot{I}_p(t)=0$$
+% $$L_{PF}\dot{I}_{PF}(t)+M_{I_p2PF}\dot{I}_p(t)=V_{PF}(t) \\M_{PF2I_p} \dot{I}_{PF}(t)(t)+L_{I_p}\dot{I}_p(t)=0$$
 % 
 % where the pedices are used to distinguish between the PF currents and the 
 % plasma current and the self and mutual inductance term are explicitly separated. 
@@ -101,7 +106,9 @@ C_xp = model.C(i_xp,:);
 figure
 nnodes = size(model.Input_struct.p,2);
 psib = model.y_np(get_y_idx(model.y_type,'psb_c',1));
-[~,hb] = plot_plasma(model.Input_struct, model.x_np(1:nnodes), psib*[1 1]);
+plot_mesh(model.Input_struct);
+hold on
+hb = plot_plasma(model.Input_struct, model.x_np(1:nnodes), psib*[1 1]);
 set(hb,'linewidth',2)
 hold on
 xlim([0 6])
@@ -118,6 +125,10 @@ end
 dIp  = 1;
 dGap = zeros(numel(rg),1);
 
+% C_It = [C_PF2Ip; 
+%         C_gap(:,1:10);
+%         C_xp(:,1:10)];
+
 C_It = [C_PF2Ip; 
         C_gap(:,1:10)];
 
@@ -125,6 +136,65 @@ Itransf = C_It\[dIp; dGap];
 
 % And normalize
 Itransf = Itransf/norm(Itransf)
+%% 
+% Finally, let's see what is the flux map generated on a plasmaless model by 
+% this pattern of currents. We will proceed as we did in the case of the VS.
+
+% Load plasmaless model
+addpath ./functions
+addpath ./models
+addpath ./data 
+
+plasmalessName = fullfile(pwd,'models','plasmaless_FG.mat');
+plasmaless = load(plasmalessName);
+
+% Compute ISO representation matrices
+pm.A = -plasmaless.L\plasmaless.R;
+pm.B = plasmaless.L\eye(size(plasmaless.L));
+pm.C = plasmaless.C;
+pm.D = zeros(size(pm.C,1), size(pm.B,2)); % just a bunch of zeros
+
+% Apply transformer currents
+dI = zeros(size(pm.C,2),1);
+dI(1:10) = Itransf;
+
+% Get output indexes in the linearized model
+i_fg = get_y_idx(plasmaless.y_type,'Flux_grid');
+n_fg = plasmaless.y_type(i_fg,1);
+r_fg = plasmaless.Input_struct.r_sens(contains(plasmaless.Input_struct.names_sensors,n_fg));
+z_fg = plasmaless.Input_struct.z_sens(contains(plasmaless.Input_struct.names_sensors,n_fg));
+
+% Compute flux variation
+C_fg = pm.C(i_fg,:);
+dy   = C_fg*dI;
+
+R_fg = reshape(r_fg,30,30);
+Z_fg = reshape(z_fg,30,30);
+dY   = reshape(dy,30,30);
+
+figure
+subplot(121)
+hm = plot_mesh(plasmaless.Input_struct);
+hold on
+contour(R_fg,Z_fg,dY,31)
+xlim([ 1.2 4.5])
+ylim([-3.3 3.3])
+title(sprintf('Contour plot of the \n transformer flux pattern'))
+
+subplot(122)
+mesh(R_fg,Z_fg,dY)
+hold on
+plot3(hm.XData,hm.YData,hm.XData*0+dY(end/2,end/2),'r')
+view([-69 11.5])
+xlim([ 1.2 4.5])
+ylim([-3.3 3.3])
+title('...the same but in 3D')
+%% 
+% As you can see, the flux is almost flat inside the limiter. This is good news, 
+% as it means that this particular pattern should work also for different plasma 
+% configurations (even if we designed it based on a specific equilibrium). Remember 
+% that flux contours are iso-flux lines in the poloidal plane, so adding a *constant* 
+% flux does not modify the magnetic topology.
 %% Dynamic regulator design
 % What we've seen until now is just half of the story. In fact, usually we also 
 % add a dynamic regulator to our system! 
