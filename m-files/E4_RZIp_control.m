@@ -1,7 +1,7 @@
 %% Position control
 % We should now have the most basic controllers already in place: we have a 
-% Vertical Stabilization System, a PFC Current controller, a plasma current controller. 
-% We shall now address the problem of *plasma position control*.
+% Vertical Stabilization System, a PFC Current controller, and a plasma current 
+% controller. We shall now address the problem of *plasma position control*.
 %% Preliminaries: the RZIp model
 % As for the other exercises, here we will use our CREATE-NL plasma equilibrium 
 % and CREATE-L linearized model to design our controllers. However, remember that 
@@ -31,7 +31,7 @@
 % These issues arise even in the most crude plasma models, e.g. if we consider 
 % the plasma as a rigid filament carrying a current. However, tokamaks are much 
 % more complex than this. The basic recipe for a tokamak is based on the so-called 
-% _screw pinch,_ a.k.a. a plasma cylinder with an helical current/field pattern; 
+% _screw pinch,_ i.e. a plasma cylinder with an helical current/field pattern; 
 % the parents of the screw-pinch are the _Z-pinch_ (roughly: good confinement 
 % properties) and the $\theta$_-pinch_ (roughly: good stability properties), two 
 % early cylindrical plasma confinement configurations. The main drawback of cylindrical 
@@ -103,7 +103,7 @@
 % 
 % 
 % However, as we have already seen *perfect walls do not exist!* The walls are 
-% always *resistive*, and eventually the flus diffuses across the wall. We cannot 
+% always *resistive*, and eventually the flux diffuses across the wall. We cannot 
 % trap a plasma indefinitely in this way (without taking into account the fact 
 % that a perfectly conducting wall would be a pain in the neck during breakdown 
 % - see what happened at WEST a few years ago...)
@@ -260,6 +260,8 @@ circuitNames = model.y_type(1:12,1);
 for i = 1 : 12
   text(model.preproc_struct.Rcond(i),model.preproc_struct.Zcond(i),circuitNames{i});
 end
+xlim([ 0.0 6.5])
+ylim([-4.5 4.5])
 %% 
 % The coils are not exactly symmetric, but we observe that the coils CS1-CS2-EF1-EF2-EF3-VSU 
 % are (approximately) a mirror image of CS3-CS4-EF6-EF5-EF4-VSL.
@@ -286,12 +288,13 @@ z_fg = plasmaless.Input_struct.z_sens(contains(plasmaless.Input_struct.names_sen
 
 
 % Current patterns (we use the EF coils only)
-dI_r = zeros(10,1); % only PF-coils
-dI_z = zeros(10,1);
+ncoils = 10; % only PF-coils
+dI_r = zeros(ncoils,1); 
+dI_z = zeros(ncoils,1);
 dI_r = [0, 0, 0, 0, +1, +1, +1, +1, +1, +1]'; % pattern for radial control
 dI_z = [0, 0, 0, 0, -1, -1, -1, +1, +1, +1]'; % pattern for vertical control
 
-C_fg = pm.C(i_fg,1:10);
+C_fg = pm.C(i_fg,1:ncoils);
 dy_r   = C_fg*dI_r;
 dy_z   = C_fg*dI_z;
 
@@ -306,16 +309,28 @@ subplot(121)
 plot_mesh(plasmaless.Input_struct);
 hold on
 contour(R_fg,Z_fg,dY_r,31)
-xlim([ 1.2 4.5])
-ylim([-3.3 3.3])
+xlim([ 1.0 6.2])
+ylim([-4.5 4.5])
+for i = 1 : ncoils
+  if dI_r(i) ~= 0
+    if dI_r(i)>0, color = 'xr'; else, color = 'ob'; end
+    plot(model.preproc_struct.Rcond(i),model.preproc_struct.Zcond(i),color,'linewidth',2,'Markersize',8)
+  end
+end
 title(sprintf('An approximately vertical field \n for radial position control'))
 
 subplot(122)
 plot_mesh(plasmaless.Input_struct);
 hold on
 contour(R_fg,Z_fg,dY_z,31)
-xlim([ 1.2 4.5])
-ylim([-3.3 3.3])
+xlim([ 1.0 6.2])
+ylim([-4.5 4.5])
+for i = 1 : ncoils
+  if dI_z(i) ~= 0
+    if dI_z(i)>0, color = 'xr'; else, color = 'ob'; end
+    plot(model.preproc_struct.Rcond(i),model.preproc_struct.Zcond(i),color,'linewidth',2,'Markersize',8)
+  end
+end
 title(sprintf('An approximately radial field \n for vertical position control'))
 %% 
 % Not perfect, but it should work (in up-down symmetric machines this is straightforward; 
@@ -324,8 +339,6 @@ title(sprintf('An approximately radial field \n for vertical position control'))
 % 
 % Let's use these combinations to obtain a 2 inputs - 2 outputs plant. If we 
 % are lucky, the vertical and radial dynamics should be almost decoupled.
-% 
-% 
 
 % Load ss model
 load PF_contr.mat PF_clsys
@@ -480,8 +493,8 @@ step(Z_clsys)
 
 margin(Z_olsys), grid on
 %% 
-% This is terrible! We definitely need to increase the phase margin. If we look 
-% at our PI, we have:
+% Terrible! We definitely need to increase the phase margin. If we look at our 
+% PI, we have:
 % 
 % $$PI(s) = K_I \frac{1+sT_I}{s}$$
 % 
@@ -530,6 +543,6 @@ plot(Tspan,dr,'r',t,y,'b')
 %% 
 % The decoupling works pretty well!
 % 
-% Finally, let's save everything
+% Finally, let's save everything for later use
 
 save ./data/RZ_contr RZ_contr dI_r dI_z RZ_clsys
