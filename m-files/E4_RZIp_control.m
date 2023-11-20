@@ -1,16 +1,16 @@
 %% Position control
 % We should now have the most basic controllers already in place: we have a 
-% Vertical Stabilization System, a PFC Current controller, and a plasma current 
+% vertical stabilization system, a PFC current controller, and a plasma current 
 % controller. We shall now address the problem of *plasma position control*.
-%% Preliminaries: the RZIp model
+%% Preliminaries
 % As for the other exercises, here we will use our CREATE-NL plasma equilibrium 
 % and CREATE-L linearized model to design our controllers. However, remember that 
 % these models are obtained through a custom FEM code and a carefully designed 
 % linearization procedure. Having such a tool is very useful, but it was not at 
 % all common in the early days of plasma control, and in this way we are somehow 
 % cheating, hiding the dust of complexity under the rug. For this reason, it is 
-% instructive to take a step back and turn our attention to a slightly simpler 
-% model: the so-called *RZIp model.*
+% instructive to take a step back and turn our attention to a simpler model: the 
+% so-called *RZIp model.*
 % 
 % RZIp simply stands for R(radial) + Z(vertical) + Ip(plasma current), and it 
 % is a "simple" model used to describe the plasma (rigid) vertical and radial 
@@ -37,26 +37,27 @@
 % early cylindrical plasma confinement configurations. The main drawback of cylindrical 
 % devices is that they loose plasma at the ends: so, the scientists of the early 
 % days of fusion research had the idea to bend them into _doughnut-shaped_ machines: 
-% tokamaks, RFPs, stellarators are all consequences of this first idea.
+% most modern toroidal fusion devices (tokamaks, RFPs, stellarators) are, at least 
+% to some extent, consequences of this first idea.
 % 
-% However, when we bend the plasma, suddenly we are faced with a deformable 
-% ring of ionized gas at 100 million degrees. In particular, with respect to a 
-% current-carrying wire, plasma can _change shape,_ and the first consequence 
-% is that it is *subject to _radial forces*_, as well as to vertical ones.
+% However, when we bend the plasma column into a torus, suddenly we are faced 
+% with a deformable ring of ionized gas at 100 million degrees. In particular, 
+% with respect to a current-carrying wire, plasma can _change shape,_ and the 
+% first consequence is that it is *subject to _radial forces*_, as well as to 
+% vertical ones.
 % 
-% In particular, the three main radial forces that awaken when we bend the plasma 
-% (I'll shorten it to BTP® and put a trademark symbol here :) ) are:
+% In particular, the three main radial forces that appear are:
 %% 
 % # the *tire-tube* force
 % # the *hoop* force
 % # the *1/R* force
 % Tire-tube force
-% The LCFS can be seen as an isobaric line. However, BTP® makes the external 
+% The LCFS can be seen as an isobaric line. Bending the plasma makes the external 
 % surface larger, and since force is pressure times surface, as a result we have 
 % a *net outward force*.
 % 
-% Note that this effect arises in both Z-pinches and $\theta$-pinches when we 
-% BTP®, as it depends on pressure.
+% Note that this effect arises in both toroidal Z-pinches and $\theta$-pinches, 
+% as it depends on pressure.
 % 
 % 
 % Hoop force
@@ -70,22 +71,25 @@
 % the tokamak...). B lines are packed more closely on the inside than on the outside, 
 % and the result is -again- a *net outward force*. 
 % 
-% This effect arises when we bend Z-pinches: the toroidal current is responsible 
-% of this effect.
+% Another way to look at this is that the so-called *magnetic pressure* scales 
+% as $B^2$, and the quadratic scaling of the field dominates over the S scaling.
+% 
+% Note that here we are looking at the poloidal field only. This effect arises 
+% when we bend Z-pinches: the toroidal current is responsible of this effect.
 % 
 % 
 % 
 % 
 % 1/R force
-% Finally, BTP® results in the fact that the toroidal field has an inverse dependence 
-% on the radius (as in the well-known formula for the field inside a toroidal 
-% solenoid). Remember that the current flows helically on the flux surfaces, so 
-% current also has a poloidal component, whose interaction with the field results 
-% -_again!_- in a *net outward force*.
+% Finally, bending the plasma into a torus results in the fact that the toroidal 
+% field has an inverse dependence on the radius (as in the well-known formula 
+% for the field inside a toroidal solenoid). Remember that the current flows helically 
+% on the flux surfaces, so current also has a poloidal component, whose interaction 
+% with the field results -_again!_- in a *net outward force*.
 % 
 % This effect arises in $\theta$-pinches: this time, it is the poloidal current 
 % which is to blame (just to get the idea, imagine an approximately constant surface 
-% current density which interacts with a different toroidal field).
+% current density which interacts with a toroidal field that varies in space).
 % 
 % 
 % 
@@ -98,15 +102,19 @@
 %% 
 % In the first case, the wall "traps" the field lines, which get compressed 
 % as the plasma moves outward. The increased value of the magnetic field results 
-% in a *restoring magnetic pressure*
+% in a *restoring magnetic pressure.* Notice that this can only be done when a 
+% poloidal field is present, i.e. for Z-pinches. That is one reason why adding 
+% a pinch of Z-pinch to our tokamak recipe is a good idea: we can easily provide 
+% stabilizing radial and vertical forces.
 % 
 % 
 % 
 % However, as we have already seen *perfect walls do not exist!* The walls are 
-% always *resistive*, and eventually the flux diffuses across the wall. We cannot 
-% trap a plasma indefinitely in this way (without taking into account the fact 
-% that a perfectly conducting wall would be a pain in the neck during breakdown 
-% - see what happened at WEST a few years ago...)
+% always *resistive*, and eventually the flux diffuses across the wall. While 
+% this approach works on short time scales, unfortunately we cannot trap a plasma 
+% indefinitely in this way (without taking into account the fact that a perfectly 
+% conducting wall would be a pain in the neck during breakdown - see what happened 
+% at WEST a few years ago...)
 % 
 % In the second case, we can carefully choose the magnitude of the *applied 
 % field* in order to balance the net outward force
@@ -117,9 +125,9 @@
 % 
 % Without digging into messy calculations, we just mention that, at least *for 
 % a circular, high aspect ratio plasma*, the resulting forces can be calculated 
-% as
+% analytically as
 %% 
-% * *Tire-tube*: $F_1 = \frac{\mu_0 I_p^2}{4} \beta_p$                             
+% * *Tire-tube*: $F_1 = \frac{\mu_0 I_p^2}{4} \beta_p$                            
 % notice how this force depends on _pressure_ through $\beta_p := \frac{<p>_{V_p}}{\frac{B^2_p(a)}{2\mu_0}} 
 % = \frac{4 \int_{V_p} p dV}{\mu_0 R_0 I_p^2}$;
 % * *Hoop*:      $F_2 = \frac{1}{2}\mu_0 I_p^2 \left[\ln \frac{8 R_0}{a} -1 
@@ -139,12 +147,16 @@
 % $$F_R = F_1 + F_2 + F_3 = \frac{\mu_0}{2} I_p^2 \left[ \ln \frac{8 R_0}{a} 
 % + \beta_p + \frac{l_i}{2} -\frac{3}{2}  \right]$$
 % 
-% We need to apply a force equal and opposite through an appropriate choice 
-% of the vertical field:
+% The term in square brackets is often referred to as $\Gamma$ and is a function 
+% of the minor radius $a$, of the major radius $R_0$, of the poloidal beta $\beta_p$ 
+% and of the internal inductance $l_i$.
+% 
+% We need to apply a force (along the negative radial direction) equal and opposite 
+% to $F_R$ through an appropriate choice of the vertical field:
 % 
 % $$F_V = -I_p B_V 2 \pi R_0 \hat{r}$$ 
 % 
-% (directed along the negative radial direction) and hence
+% Hence
 % 
 % $$B_V = \frac{\mu_0 I_p}{4 \pi R_0} \left[  \ln \frac{8 R_0}{a} + \beta_p 
 % + \frac{l_i}{2}  -\frac{3}{2}   \right]$$
@@ -199,14 +211,13 @@
 % currents, but *we allowed the plasma current to change* and we added the *radial 
 % force balance equation*. Moreover, often in RZIp models, *more than a single 
 % plasma filament is used*, each filament carrying a current that is related to 
-% the internal plasma current profile.
+% the internal plasma current profile (and the fields/forces are averaged over 
+% the plasma current distribution).
 % 
 % Again, in most cases the plasma is assumed to be _massless_, i.e. $m_p \rightarrow 
 % 0$. This can be formally seen as a the application of the _singular perturbation_ 
 % method: we substitute equations (2) and (3) in the model above with static relations 
 % that need to be satisfied.
-% 
-% 
 % 
 % After this short overview, we are ready to design our controller.
 %% RZIp control using a CREATE-L model
@@ -447,12 +458,12 @@ ylim([-3 4])
 % Again, note that this is not the optimal way of proceeding, and we could probably 
 % do much better by using more sophisticated approaches to decouple our MIMO system. 
 % However, this simple example has the advantage of showing how we can combine 
-% physical domain expertise and control design techniques in a simple but efficient 
+% physical domain expertise and control design techniques in a simple but effective 
 % way.
 % 
 % We need to design two SISO control loops; we'll make them robust, and hope 
-% that the controllers are able of fully decouple the dynamics. We'll design our 
-% controller in the frequency domain.
+% that the controllers are able of fully decoupling the dynamics. We'll design 
+% our controller in the frequency domain.
 % 
 % Let's start with $rp$
 
