@@ -300,8 +300,6 @@ z_fg = plasmaless.Input_struct.z_sens(contains(plasmaless.Input_struct.names_sen
 
 % Current patterns (we use the EF coils only)
 ncoils = 10; % only PF-coils
-dI_r = zeros(ncoils,1); 
-dI_z = zeros(ncoils,1);
 dI_r = [0, 0, 0, 0, +1, +1, +1, +1, +1, +1]'; % pattern for radial control
 dI_z = [0, 0, 0, 0, -1, -1, -1, +1, +1, +1]'; % pattern for vertical control
 
