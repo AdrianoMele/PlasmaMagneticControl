@@ -153,7 +153,7 @@ SHP_matrix = SHP_matrix(:, 1:end-1);
 % for you :)
 
 s = tf('s');
-shp_contr = (1 + 5/s + 5*s/(1+100*s));
+shp_contr = (0.2 + 5/s + 5*s/(1+100*s));
 %% Test on the full system
 % We are now ready to test our full magnetic control system. Let's start by 
 % extracting the necessary output matrices, loading the controller we have already 
@@ -265,10 +265,11 @@ figure
 plot(Tspan,dr(:,1),'r',t,y(:,1),'b')
 %% 
 % 3000 Amps might seem a lot, but the scenario current is 5.5 MA, so this is 
-% less than1/1000. Good. Finally, the X-point
+% less than 1/1000. Good. Finally, the X-point
 
 figure
 plot(Tspan,dr(:,end-1:end),'r',t,y(:,end-1:end),'b')
+grid on
 %% 
 % This is quite precise, as the maximum error stays below 1mm. Actually, we 
 % chose the weight on the X-point a little higher than the one on the gaps, so 
@@ -277,3 +278,12 @@ plot(Tspan,dr(:,end-1:end),'r',t,y(:,end-1:end),'b')
 % Finally, let's save everything.
 
 save ./data/shape_contr SHP_contr iGap
+%% Bonus: experimental results
+% In the past years, we also worked jointly with the EAST team on a MIMO shape 
+% control. The picture below shows some results from a few years ago (2018), where 
+% the advantage of using a MIMO shape control over a bank of SISO controllers 
+% clearly appears. Notice that at EAST an _isoflux_ controller was used, which 
+% we did not discuss here. (However, trying to implement a simple isoflux scheme 
+% may be a good exercise...)
+% 
+%
