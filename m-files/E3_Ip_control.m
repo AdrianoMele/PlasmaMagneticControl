@@ -195,6 +195,80 @@ title('...the same but in 3D')
 % configurations (even if we designed it based on a specific equilibrium). Remember 
 % that flux contours are iso-flux lines in the poloidal plane, so adding a *constant* 
 % flux does not modify the magnetic topology.
+% Another take on the calculation transformer currents
+% Another possibility is to use our plasmaless model to design our transformer 
+% currents pattern.
+% 
+% To do so, we may take again our grid of virtual flux sensors and find a set 
+% of currents that produce approximately the same field in the central region 
+% of our grid.
+% 
+% We start by choosing the region where we want to have constant flux
+
+% For simplicity we use a rectangle in the center of the grid
+zmin = -1.5;
+zmax = +1.5;
+rmin = 2;
+rmax = 3.5;
+
+% Here we get the logical index of the considered sensors in the '_fg'
+% vectors and extract coordinates and indices in the full C matrix
+ic = r_fg>rmin & r_fg<rmax &z_fg>zmin & z_fg<zmax;
+rfg_c = r_fg(ic);
+zfg_c = z_fg(ic);
+ifg_c = i_fg(ic);
+
+% Let's see where our sensors are placed
+figure
+plot_mesh(plasmaless.Input_struct);
+hold on
+plot(r_fg,z_fg,'.b')
+plot(rfg_c,zfg_c,'.r')
+xlim([ 1.2 4.5])
+ylim([-3.3 3.3])
+%% 
+% To compute our transformer currents, we extract the rows of the C matrix corresponding 
+% to our subset of virtual flux sensors and impose a constant flux variation in 
+% the considered region (let's call it $\delta \psi ^*$). We can then compute 
+% our transformer currents pattern $I_{transf}$ by pseudoinverting our $C$ matrix, 
+% i.e. 
+% 
+% $$I_{transf} = C^\dagger \delta \psi ^*$$
+
+C1 = pm.C(ifg_c,1:10);
+dpsi = -ones(size(C1,1),1); % the - sign is just to get the same direction as before
+
+Itransf1 = C1 \ dpsi;
+Itransf1 = Itransf1 / norm(Itransf1);
+%% 
+% Let's check the result
+
+figure
+bar([Itransf,Itransf1]);
+%% 
+% The pattern we obtained is very similar to the one we have seen before. Let's 
+% also take a look at the flux map:
+
+dy = C_fg(:,1:10)*Itransf1;
+R_fg = reshape(r_fg,30,30);
+Z_fg = reshape(z_fg,30,30);
+dY   = reshape(dy,30,30);
+figure
+subplot(121)
+hm = plot_mesh(plasmaless.Input_struct);
+hold on
+contour(R_fg,Z_fg,dY,31)
+xlim([ 1.2 4.5])
+ylim([-3.3 3.3])
+title(sprintf('Contour plot of the \n transformer flux pattern'))
+subplot(122)
+mesh(R_fg,Z_fg,dY)
+hold on
+plot3(hm.XData,hm.YData,hm.XData*0+dY(end/2,end/2),'r')
+view([-69 11.5])
+xlim([ 1.2 4.5])
+ylim([-3.3 3.3])
+title('...the same but in 3D')
 %% Dynamic regulator design
 % What we've seen until now is just half of the story. In fact, usually we also 
 % add a dynamic regulator to our system! 
